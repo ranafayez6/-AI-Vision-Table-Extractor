@@ -1,0 +1,319 @@
+{
+  "name": "Grades_Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {
+          "download": true
+        }
+      },
+      "id": "e7039048-7e91-4a74-a7b2-785b13e7d836",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        112
+      ],
+      "webhookId": "859a294c-758b-4087-99fc-a50a688bf5d1",
+      "credentials": {
+        "telegramApi": {
+          "id": "6TyWgCp2xEtxEiH3",
+          "name": "create sheet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $json.message.photo ? $json.message.photo.slice(-1)[0].file_id : $json.message.document.file_id }}",
+        "additionalFields": {}
+      },
+      "id": "bf7f8c32-85f5-4e7f-bc1c-8e592a7d6a82",
+      "name": "Get a file",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        112
+      ],
+      "webhookId": "9c35d88d-4d35-4c61-b45e-7c0c77ad56a0",
+      "credentials": {
+        "telegramApi": {
+          "id": "6TyWgCp2xEtxEiH3",
+          "name": "create sheet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=حلل صورة كشف الدرجات المرفقة واستخرج اسم كل طالب ودرجاته في مادة الإنجليزي والعربي والرياضيات. أعد النتيجة بصيغة JSON فقط.",
+        "options": {
+          "systemMessage": "You are an expert OCR data-extraction assistant for student grade sheets.\nThe user sends an image of a table containing student names and their grades in English, Arabic, and Math.\nAnalyze the ATTACHED IMAGE and extract every student row precisely.\n\nReturn ONLY valid JSON — no markdown, no code fences, no explanations — in exactly this structure:\n{\n  \"students\": [\n    { \"name\": \"Student full name\", \"english\": 0, \"arabic\": 0, \"math\": 0 }\n  ]\n}\n\nRules:\n- Use numbers (not strings) for english, arabic and math.\n- If a grade is missing or unreadable, use null.\n- Include exactly one object per student.",
+          "passthroughBinaryImages": true
+        }
+      },
+      "id": "5fe79678-b702-4887-be60-d682fdbd6b3d",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        448,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.output;\n\nlet parsed;\n\n// إذا كان Object بالفعل\nif (typeof raw === \"object\") {\n  parsed = raw;\n} else {\n  let text = String(raw).trim();\n\n  // إزالة Markdown إن وجد\n  text = text.replace(/```json/gi, \"\").replace(/```/g, \"\").trim();\n\n  // إذا كان النص يحتوي على escape characters\n  if (text.startsWith('\"') && text.endsWith('\"')) {\n    text = JSON.parse(text);\n  }\n\n  parsed = JSON.parse(text);\n}\n\nconst students = Array.isArray(parsed)\n  ? parsed\n  : (parsed.students || []);\n\nif (!students.length) {\n  throw new Error(\"No students found in AI output\");\n}\n\nconst toNum = (v) => {\n  if (v === null || v === undefined || v === \"\") return null;\n  const n = Number(v);\n  return isNaN(n) ? null : n;\n};\n\nreturn students.map((s) => ({\n  json: {\n    \"الاسم\": s.name ?? s[\"الاسم\"] ?? null,\n    \"الإنجليزي\": toNum(s.english ?? s[\"الإنجليزي\"]),\n    \"العربي\": toNum(s.arabic ?? s[\"العربي\"]),\n    \"الرياضيات\": toNum(s.math ?? s[\"الرياضيات\"]),\n  },\n}));"
+      },
+      "id": "ed8c3613-5181-4eb7-9908-f6410f8044ee",
+      "name": "Code in JavaScript",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        800,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1OYUPnqWD9LsZxRuEMaCpcWaEZwZRdBkfYTRTziR_rP8",
+          "mode": "list",
+          "cachedResultName": "create sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1OYUPnqWD9LsZxRuEMaCpcWaEZwZRdBkfYTRTziR_rP8/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1OYUPnqWD9LsZxRuEMaCpcWaEZwZRdBkfYTRTziR_rP8/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "الاسم",
+              "displayName": "الاسم",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "الإنجليزي",
+              "displayName": "الإنجليزي",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "العربي",
+              "displayName": "العربي",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "الرياضيات",
+              "displayName": "الرياضيات",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "7d1b51b0-043f-42e0-ae24-c501f03bd60d",
+      "name": "Append row in sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1024,
+        112
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "O8ELWTcJWPbDnnpC",
+          "name": "Google Sheets account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "id": "6b5f0835-d133-406e-aba3-386571842846",
+      "name": "Aggregate",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1248,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "✅ تمت العملية بنجاح.  📊 تم استخراج البيانات وإضافتها إلى Google Sheets بنجاح.  📄 رابط الشيت: https://docs.google.com/spreadsheets/d/1OYUPnqWD9LsZxRuEMaCpcWaEZwZRdBkfYTRTziR_rP8/edit?usp=sharing",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "5bd8d367-67d5-4a41-88fe-21e73c377965",
+      "name": "Send a text message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1472,
+        112
+      ],
+      "executeOnce": true,
+      "webhookId": "924df18b-581c-4001-a00e-ab56158aab54",
+      "credentials": {
+        "telegramApi": {
+          "id": "6TyWgCp2xEtxEiH3",
+          "name": "create sheet"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        528,
+        336
+      ],
+      "id": "1b52793f-9937-4a73-825f-af22f19b8847",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ReFz2tffz3l08rjT",
+          "name": "Google Gemini(PaLM) Api account 3"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "65ebd74a-6b65-4317-b9f6-8d2508fbc547",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ba16ef5d21dfe9a233f110aa4e80a284bb6fa0984ff5d70cf69aacc10f487d5f"
+  },
+  "nodeGroups": [],
+  "id": "gJmgbMltbpqj7YoE",
+  "tags": []
+}
